@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  repo        String?  // stored as "owner/repo"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt()
+
+  tickets Ticket[]
+
+  @@map("projects")
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String
+  status      TicketStatus
+  priority    TicketPriority
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt()
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@index([projectId, updatedAt])
+  @@map("tickets")
+}
+
+model RepoCache {
+  repo      String   @unique
+  data      Json
+  fetchedAt DateTime @default(now())
+
+  @@map("repo_cache")
+}
+
+enum TicketStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
