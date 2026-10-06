@@ -103,10 +103,15 @@ export function useUpdateTicket() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.tickets.lists() });
       queryClient.invalidateQueries({ queryKey: queryKeys.tickets.details() });
+      if (result.ticket?.projectId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.projects.detail(result.ticket.projectId),
+        });
+      }
     },
   });
 }
