@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const result = ticketQuerySchema.safeParse(searchParams);
 
     if (!result.success) {
-      const details = result.error.errors.map((err) => ({
+      const details = result.error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }));
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const result = createTicketSchema.safeParse(body);
 
     if (!result.success) {
-      const details = result.error.errors.map((err) => ({
+      const details = result.error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }));

@@ -13,7 +13,7 @@ export async function GET(
     const result = projectParamsSchema.safeParse({ id });
 
     if (!result.success) {
-      const details = result.error.errors.map((err) => ({
+      const details = result.error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }));

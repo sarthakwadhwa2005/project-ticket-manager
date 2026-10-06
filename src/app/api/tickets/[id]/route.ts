@@ -12,7 +12,7 @@ export async function GET(
     const result = ticketParamsSchema.safeParse({ id });
 
     if (!result.success) {
-      const details = result.error.errors.map((err) => ({
+      const details = result.error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }));
@@ -41,7 +41,7 @@ export async function PATCH(
     const paramsResult = ticketParamsSchema.safeParse({ id });
 
     if (!paramsResult.success) {
-      const details = paramsResult.error.errors.map((err) => ({
+      const details = paramsResult.error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }));
@@ -52,7 +52,7 @@ export async function PATCH(
     const bodyResult = updateTicketSchema.safeParse(body);
 
     if (!bodyResult.success) {
-      const details = bodyResult.error.errors.map((err) => ({
+      const details = bodyResult.error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }));
@@ -81,7 +81,7 @@ export async function DELETE(
     const result = ticketParamsSchema.safeParse({ id });
 
     if (!result.success) {
-      const details = result.error.errors.map((err) => ({
+      const details = result.error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }));

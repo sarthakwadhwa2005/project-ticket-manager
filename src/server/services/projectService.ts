@@ -1,30 +1,44 @@
 import { prisma } from '@/lib/prisma';
 import { CreateProjectInput, normalizeRepo } from '@/lib/schemas';
-import { notFound } from '@/lib/errors';
-import type { ErrorResponse } from '@/lib/errors';
 
 export async function getAllProjects() {
-  const projects = await prisma.project.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      _count: {
-        select: { tickets: true },
-      },
-      tickets: {
-        orderBy: { updatedAt: 'desc' },
-        take: 4,
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          priority: true,
-          updatedAt: true,
+  const [projects, ticketCounts] = await Promise.all([
+    prisma.project.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: { tickets: true },
+        },
+        tickets: {
+          orderBy: { updatedAt: 'desc' },
+          take: 4,
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            updatedAt: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.ticket.groupBy({
+      by: ['projectId', 'status'],
+      _count: { _all: true },
+    }),
+  ]);
 
-  // Group tickets by status
+  const countsByProject = new Map<string, { TODO: number; IN_PROGRESS: number; DONE: number }>();
+  for (const count of ticketCounts) {
+    const projectCounts = countsByProject.get(count.projectId) ?? {
+      TODO: 0,
+      IN_PROGRESS: 0,
+      DONE: 0,
+    };
+    projectCounts[count.status] = count._count._all;
+    countsByProject.set(count.projectId, projectCounts);
+  }
+
   return projects.map((project) => ({
     id: project.id,
     name: project.name,
@@ -32,12 +46,7 @@ export async function getAllProjects() {
     repo: project.repo,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
-    ticketCounts: {
-      TODO: project.tickets.filter((t) => t.status === 'TODO').length,
-      IN_PROGRESS: project.tickets.filter((t) => t.status === 'IN_PROGRESS').length,
-      DONE: project.tickets.filter((t) => t.status === 'DONE').length,
-      total: project._count.tickets,
-    },
+    ticketCounts: { ...(countsByProject.get(project.id) ?? { TODO: 0, IN_PROGRESS: 0, DONE: 0 }), total: project._count.tickets },
     recentTickets: project.tickets,
   }));
 }

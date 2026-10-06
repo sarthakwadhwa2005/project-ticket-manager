@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const result = createProjectSchema.safeParse(body);
 
     if (!result.success) {
-      const details = result.error.errors.map((err) => ({
+      const details = result.error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }));

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { githubNotFound, githubRateLimited, githubNetworkError } from '@/lib/errors';
 
@@ -26,6 +27,10 @@ export interface RepoInsights {
   stale?: boolean;
 }
 
+function toJson(data: GitHubRepoData): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(data));
+}
+
 export async function getRepoInsights(
   repo: string
 ): Promise<{ data: RepoInsights } | { error: ReturnType<typeof githubNotFound> }> {
@@ -36,8 +41,6 @@ export async function getRepoInsights(
 
   if (cached) {
     const cacheAge = Date.now() - new Date(cached.fetchedAt).getTime();
-    const isStale = cacheAge > CACHE_TTL_MS;
-
     if (cacheAge <= CACHE_TTL_MS) {
       // Cache is valid - return cached data
       return {
@@ -58,11 +61,12 @@ export async function getRepoInsights(
     // Cache is stale - try to fetch fresh data, but return stale if fetch fails
     try {
       const freshData = await fetchFromGitHub(repo);
+      const fetchedAt = new Date();
       await prisma.repoCache.update({
         where: { repo },
         data: {
-          data: freshData,
-          fetchedAt: new Date(),
+          data: toJson(freshData),
+          fetchedAt,
         },
       });
 
@@ -75,8 +79,8 @@ export async function getRepoInsights(
           language: freshData.language,
           watchers: freshData.watchers_count,
           license: freshData.license?.name ?? null,
-          cached: true,
-          fetchedAt: new Date().toISOString(),
+          cached: false,
+          fetchedAt: fetchedAt.toISOString(),
         },
       };
     } catch {
@@ -106,12 +110,12 @@ export async function getRepoInsights(
     await prisma.repoCache.upsert({
       where: { repo },
       update: {
-        data: data,
+        data: toJson(data),
         fetchedAt: new Date(),
       },
       create: {
         repo,
-        data: data,
+        data: toJson(data),
       },
     });
 
@@ -147,7 +151,7 @@ async function fetchFromGitHub(repo: string): Promise<GitHubRepoData> {
   };
 
   if (process.env.GITHUB_TOKEN) {
-    headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+    headers.Authorization = 'Bearer ' + process.env.GITHUB_TOKEN;
   }
 
   const response = await fetch(`https://api.github.com/repos/${repo}`, {
