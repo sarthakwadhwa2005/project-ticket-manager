@@ -135,8 +135,8 @@ npm run build
 ```
 
 Ensure the production database is reachable by `DIRECT_URL`, and review
-migrations before deploying schema changes. Live URL: **to be added after
-deployment**.
+migrations before deploying schema changes. Live URL:
+<https://project-ticket-manager.vercel.app/>.
 
 ## AI usage
 
