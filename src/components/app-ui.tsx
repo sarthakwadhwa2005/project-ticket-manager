@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useCreateProject } from '@/hooks/useProjects';
 import { useCreateTicket, useUpdateTicket } from '@/hooks/useTickets';
 import type { CreateProjectInput, CreateTicketInput, UpdateTicketInput } from '@/lib/schemas';
@@ -21,7 +21,28 @@ export function LoadingCards() {
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return <div className="fixed inset-0 z-20 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-label={title}><div className="my-auto max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold">{title}</h2><button onClick={onClose} className="rounded-md px-2 py-1 text-xl text-slate-500 hover:bg-slate-100" aria-label="Close">×</button></div>{children}</div></div>;
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const firstControl = dialogRef.current?.querySelector<HTMLElement>('input, textarea, select, button');
+    firstControl?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
+
+  return <div className="fixed inset-0 z-20 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-label={title}>
+    <div ref={dialogRef} className="my-auto max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+      <div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold">{title}</h2><button onClick={onClose} className="rounded-md px-2 py-1 text-xl text-slate-500 hover:bg-slate-100" aria-label="Close">×</button></div>
+      {children}
+    </div>
+  </div>;
 }
 
 export function ProjectModal({ onClose }: { onClose: () => void }) {
